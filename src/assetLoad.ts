@@ -7,7 +7,8 @@ const AssetsMap = {
   symbolAtlas: 'symbols.json',
 }
 
-const SymbolAssetMap = {
+const SymbolAssetMap: Record<SymbolID, string> = {
+  [SymbolID.Empty]: '',
   [SymbolID.Zombie]: 'sb1.png',
   [SymbolID.Brain]: 'sb2.png',
   [SymbolID.Skull]: 'sb3.png',

@@ -1,5 +1,6 @@
 import { Point } from "pixi.js";
 import { BoardMatrix, Direction, GameCombination, SymbolID } from "../Types";
+import { copyBoard } from "./boardHandler";
 
 /** Get all 3 or more symbol combinations on a given line (array of symbols) */
 export function getCombinationsInLine(line: Array<SymbolID>): Array<Array<number>> {
@@ -29,13 +30,28 @@ export function getCombinationsInBoard(board: BoardMatrix): Array<GameCombinatio
     const hCombinations = getCombinationsInLine(horizontalLine).map((comb) => ({
       points: comb.map((r) => new Point(r, i)),
       direction: Direction.Horizontal,
+      height: 1,
     }));
     const vCombinations = getCombinationsInLine(verticalLine).map((comb) => ({
       points: comb.map((c) => new Point(i, c)),
       direction: Direction.Vertical,
+      height: comb.length,
     }));
     matches.push(...hCombinations);
     matches.push(...vCombinations);
   }
   return matches;
+}
+
+/**
+ * Removes combinations from board, replacing them by empty symbols
+ */
+export function removeCombinationsFromBoard(board: BoardMatrix, combinations: Array<GameCombination>): BoardMatrix {
+  const auxBoard = copyBoard(board);
+  combinations.forEach(({ points }) => 
+    points.forEach(({ x, y }) => {
+      auxBoard[y][x] = SymbolID.Empty;
+    })
+  );
+  return auxBoard;
 }

@@ -1,15 +1,17 @@
+import { Point } from "pixi.js";
 import { BoardMatrix, SymbolID } from "../Types";
 import { getCombinationsInBoard } from "./combinationHandler";
+import { rangeArray } from "../utils";
 
 const InitialBoard = [
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0],
+  [1, 0, 0, 0, 0, 0, 0, 0],
+  [1, 0, 0, 0, 0, 0, 0, 0],
+  [1, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 0, 1, 1, 1],
+  [0, 0, 0, 1, 0, 0, 0, 0],
+  [0, 0, 0, 1, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 0, 0, 1],
 ]
 
 function getRandomSymbolID(): SymbolID {
@@ -17,6 +19,7 @@ function getRandomSymbolID(): SymbolID {
   return rand;
 }
 
+/** Performs object deepcopy to copy a board and avoid mutation */
 export function copyBoard(board: BoardMatrix): BoardMatrix {
   return [...board.map((arr) => [...arr])];
 }
@@ -52,4 +55,46 @@ export function makeFirstBoard(): BoardMatrix {
   const randBoard = makeRandomBoard();
   const cleanBoard = removeBoardCombinations(randBoard);
   return cleanBoard;
+}
+
+/** 
+ *  Applies gravity on a given column, shifting all non empty spaces to bottom while maintaining order
+ * and replacing empty symbols by a random symbol
+ */
+function applyColumnGravity(column: Array<number>): Array<number> {
+  const aux = [...column];
+  for (let i = 0; i < column.length; i++) {
+    const sb = aux[i];
+    if (sb === -1) {
+        aux.splice(i, 1);
+        aux.unshift(getRandomSymbolID());
+    }
+  }
+  return aux;
+}
+
+/**
+ *  Applies gravity, making symbols fall into empty spaces, and new random symbols originate from
+ * board's top
+ */
+export function applyBoardGravity(board: BoardMatrix): { board: BoardMatrix, newSymbols: Array<Point> } {
+  const indexes = rangeArray(0, board.length - 1);
+  const newSymbols: Array<Point> = [];
+  const auxBoard = copyBoard(board);
+  for (let c = 0; c < board.length; c++) {
+    const column = indexes.map((r) => board[r][c]);
+    const newColumn = applyColumnGravity(column);
+    indexes.forEach((r) => {
+      auxBoard[r][c] = newColumn[r];
+      newSymbols.push(new Point(r, c));
+    });
+  }
+  return { board: auxBoard, newSymbols };
+}
+
+/** Returns if two board positions are adjacent horizontally or vertically (not diagonally) */
+export function isAdjacent(point1: Point, point2: Point): boolean {
+  const dX = Math.abs(point1.x - point2.x);
+  const dY = Math.abs(point1.y - point2.y);
+  return dX + dY <= 1;
 }

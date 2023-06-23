@@ -7,7 +7,9 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "pixi.js": "^7.1.2"
+    "pixi.js": "^7.2.4",
+    "rxjs": "^7.8.1",
+    "tweedle.js": "^2.1.0"
   },
   "devDependencies": {
     "@types/pixi.js": "^5.0.0",

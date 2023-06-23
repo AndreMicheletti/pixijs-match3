@@ -1,6 +1,6 @@
 import { Application } from 'pixi.js';
-import { GameScene } from './scenes/GameScene';
 import { loadAssets } from './assetLoad';
+import { GameScene } from './scenes/GameScene';
 
 (async function () {
   const app = new Application({
@@ -11,7 +11,10 @@ import { loadAssets } from './assetLoad';
     width: 640,
     height: 480
   });
-  
+
+  // Pixi DevTools
+  (globalThis as any).__PIXI_APP__ = app; // eslint-disable-line
+
   await loadAssets();
   const gameScene = new GameScene(app.screen.width, app.screen.height);
   app.stage.addChild(gameScene);
