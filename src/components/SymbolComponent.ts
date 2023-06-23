@@ -4,29 +4,46 @@ import { getSymbolTexture } from "../assetLoad";
 import { SymbolMargin, SymbolSize } from "../scenes/GameScene";
 
 export default class SymbolComponent extends Sprite {
-  public symbolID: SymbolID;
+  private _symbolID: SymbolID;
 
-  public boardPos: Point;
+  private _boardPos: Point;
+
+  public get symbolID(): SymbolID {
+    return this._symbolID;
+  }
+
+  public set symbolID(val: SymbolID) {
+    this._symbolID = val;
+    this.updateTexture();
+  }
+
+  public get boardPos(): Point {
+    return this._boardPos;
+  }
+
+  public set boardPos(val: Point) {
+    this._boardPos = val;
+    this.updatePosition();
+  }
 
   constructor(symbolID: SymbolID, size: number, boardPos: Point) {
     super();
-    this.symbolID = symbolID;
-    this.boardPos = boardPos;
+    this._symbolID = symbolID;
+    this._boardPos = boardPos;
     this.anchor.set(0.5);
     this.width = size;
     this.height = size;
     this.updateTexture();
   }
 
-  public setBoardData(point: Point, symbolId: SymbolID): void {
-  const size = SymbolSize + SymbolMargin;
-    this.symbolID = symbolId;
-this.boardPos = point;
-this.position = new Point(point.x * size, point.y * size);
-this.updateTexture();
+  protected updatePosition(): void {
+    const size = SymbolSize + SymbolMargin;
+    this.position = new Point(this.boardPos.x * size, this.boardPos.y * size);
   }
 
   protected updateTexture(): void {
-  this.texture = getSymbolTexture(this.symbolID);
-}
+    const tex = getSymbolTexture(this._symbolID);
+    if (tex) this.texture = tex;
+    else this.texture = null;
+  }
 }

@@ -1,7 +1,8 @@
 import { Point } from "pixi.js";
-import { BoardMatrix, SymbolID } from "../Types";
+import { BoardMatrix, SymbolDrop, SymbolID } from "../Types";
 import { getCombinationsInBoard } from "./combinationHandler";
 import { rangeArray } from "../utils";
+import { getBoardValidActions } from "./actionHandler";
 
 const InitialBoard = [
   [1, 0, 0, 0, 0, 0, 0, 0],
@@ -31,7 +32,7 @@ export function copyBoard(board: BoardMatrix): BoardMatrix {
 function removeBoardCombinations(board: BoardMatrix): BoardMatrix {
   const auxBoard = copyBoard(board);
   const combinations = getCombinationsInBoard(auxBoard);
-  combinations.forEach(({ points }) => {
+  combinations.forEach((points) => {
     const { x, y } = points[1];
     const symbol = auxBoard[y][x];
     const adjTop = auxBoard[Math.max(y - 1, 0) % 5][x];
@@ -50,6 +51,10 @@ function makeRandomBoard(): BoardMatrix {
   return InitialBoard.map((row) => row.map((_) => getRandomSymbolID()));
 }
 
+function replaceEmptyByRandom(board: BoardMatrix): BoardMatrix {
+  return copyBoard(board.map((row) => row.map((symbol) => symbol === SymbolID.Empty ? getRandomSymbolID() : symbol)));
+}
+
 /** Makes the first game board, with at least 1 possible action, and no initial combinations */
 export function makeFirstBoard(): BoardMatrix {
   const randBoard = makeRandomBoard();
@@ -57,39 +62,63 @@ export function makeFirstBoard(): BoardMatrix {
   return cleanBoard;
 }
 
+export function findGravityDrops(column: Array<number>, x: number): Array<SymbolDrop> {
+  const aux = [...column];
+  const drops: Array<SymbolDrop> = [];
+  let height = 0;
+  for (let y = column.length - 1; y > -1; y--) {
+    const point = new Point(x, y);
+    const symbol = aux[y];
+    if (symbol === SymbolID.Empty) height += 1;
+    else if (height > 0) {
+      const newPoint = new Point(x, y + height)
+      drops.push({ point, newPoint });
+    }
+  }
+  return drops;
+}
+
 /** 
  *  Applies gravity on a given column, shifting all non empty spaces to bottom while maintaining order
  * and replacing empty symbols by a random symbol
  */
-function applyColumnGravity(column: Array<number>): Array<number> {
+function applyColumnGravity(column: Array<number>): { column: Array<number>, height: number } {
   const aux = [...column];
+  let height = 0;
   for (let i = 0; i < column.length; i++) {
     const sb = aux[i];
     if (sb === -1) {
-        aux.splice(i, 1);
-        aux.unshift(getRandomSymbolID());
+      height += 1;
+      aux.splice(i, 1);
+      aux.unshift(-1);
     }
   }
-  return aux;
+  return { column: aux, height };
 }
 
 /**
  *  Applies gravity, making symbols fall into empty spaces, and new random symbols originate from
  * board's top
  */
-export function applyBoardGravity(board: BoardMatrix): { board: BoardMatrix, newSymbols: Array<Point> } {
+export function applyBoardGravity(board: BoardMatrix): BoardMatrix {
   const indexes = rangeArray(0, board.length - 1);
   const newSymbols: Array<Point> = [];
   const auxBoard = copyBoard(board);
+  const heightByColumn = [];
   for (let c = 0; c < board.length; c++) {
-    const column = indexes.map((r) => board[r][c]);
-    const newColumn = applyColumnGravity(column);
+    const originalColumn = indexes.map((r) => board[r][c]);
+    const { column, height } = applyColumnGravity(originalColumn);
     indexes.forEach((r) => {
-      auxBoard[r][c] = newColumn[r];
+      auxBoard[r][c] = column[r];
       newSymbols.push(new Point(r, c));
     });
+    heightByColumn.push(height);
   }
-  return { board: auxBoard, newSymbols };
+  let finalBoard = replaceEmptyByRandom(auxBoard);
+  // Ensure at least 1 action is available
+  while (getBoardValidActions(finalBoard).length <= 0)
+    finalBoard = replaceEmptyByRandom(auxBoard);
+  return finalBoard;
 }
 
 /** Returns if two board positions are adjacent horizontally or vertically (not diagonally) */

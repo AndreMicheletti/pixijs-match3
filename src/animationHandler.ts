@@ -4,17 +4,20 @@ import { Easing, EasingFunction, Tween } from 'tweedle.js';
 import SymbolComponent from "./components/SymbolComponent";
 
 type MoveParams = {
-  duration: number;
-  easing: EasingFunction;
+  duration?: number;
+  delay?: number;
+  easing?: EasingFunction;
 }
 
-export function animateSymbolToPosition(symbol: SymbolComponent, point: Point, params?: MoveParams): Promise<void> {
-  const { duration, easing } = params || { duration: 500, easing: Easing.Quadratic.InOut };
+const DefaultMoveParam = { duration: 500, delay: 0, easing: Easing.Quadratic.InOut };
+
+export function animateSymbolToPosition(symbol: SymbolComponent, position: Point, params?: MoveParams): Promise<void> {
+  const { duration, delay, easing  } = { ...DefaultMoveParam, ...params };
   return new Promise<void>((resolve) =>
     new Tween(symbol)
-      .to({ x: point.x, y: point.y }, duration)
+      .to({ x: position.x, y: position.y }, duration)
       .easing(easing)
-      .onComplete(() => resolve())
+      .onComplete(() => setTimeout(resolve, delay))
       .start()
   );
 }
@@ -29,7 +32,7 @@ export async function animateSymbolSwap(origin: SymbolComponent, target: SymbolC
 }
 
 export function animateSymbolExplode(symbol: SymbolComponent): Promise<void> {
-  return new Promise<void>((resolve) => 
+  return new Promise<void>((resolve) =>
     new Tween(symbol)
       .to({ scale: 4, alpha: 0 }, 1500)
       .easing(Easing.Quadratic.Out)

@@ -9,7 +9,7 @@ import { GameScene } from './scenes/GameScene';
     autoDensity: true,
     backgroundColor: 0x6495ed,
     width: 640,
-    height: 480
+    height: 480,
   });
 
   // Pixi DevTools

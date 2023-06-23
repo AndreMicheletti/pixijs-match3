@@ -56,7 +56,10 @@ module.exports = (env, argv) => {
                 {
                     test: /\.ts(x)?$/,
                     loader: 'ts-loader',
-                    exclude: /node_modules/
+                    exclude: /node_modules/,
+                    options: {
+                      transpileOnly: true
+                    }
                 }
             ]
         },

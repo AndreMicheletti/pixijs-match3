@@ -1,10 +1,19 @@
 import { Spritesheet, Texture, Assets } from "pixi.js";
 import { SymbolID } from "./Types";
 
-let symbolSpritesheet: Spritesheet;
+type AssetLoadData = {
+  symbolAtlas: Spritesheet | undefined;
+  background: Texture | undefined;
+}
+
+const AssetLoad: AssetLoadData = {
+  symbolAtlas: undefined,
+  background: undefined,
+}
 
 const AssetsMap = {
   symbolAtlas: 'symbols.json',
+  background: 'back.jpg',
 }
 
 const SymbolAssetMap: Record<SymbolID, string> = {
@@ -16,10 +25,15 @@ const SymbolAssetMap: Record<SymbolID, string> = {
   [SymbolID.Eyes]: 'sb5.png',
 };
 
-export function getSymbolTexture(symbolID: SymbolID): Texture {
-  return symbolSpritesheet?.textures[SymbolAssetMap[symbolID]];
+export function getSymbolTexture(symbolID: SymbolID): Texture | undefined {
+  return AssetLoad.symbolAtlas?.textures[SymbolAssetMap[symbolID]];
+}
+
+export function getAssets(): AssetLoadData {
+  return AssetLoad;
 }
 
 export async function loadAssets(): Promise<void> {
-  symbolSpritesheet = await Assets.load(AssetsMap.symbolAtlas);
+  AssetLoad.symbolAtlas = await Assets.load(AssetsMap.symbolAtlas);
+  AssetLoad.background = await Assets.load(AssetsMap.background);
 }

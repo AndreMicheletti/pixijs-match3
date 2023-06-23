@@ -16,15 +16,14 @@ export enum Direction {
 
 export type BoardMatrix = Array<Array<SymbolID>>;
 
-export type GameCombination = {
-  points: Array<Point>;
-  direction: Direction;
-  height: number;
-};
+export type GameCombination = Array<Point>;
 
-/**
- * Actions are always represented by top-leftmost point going right or down.
- */
+export type SymbolDrop = {
+  point: Point;
+  newPoint: Point;
+}
+
+/** Actions are always represented by top-leftmost point going right or down. */
 export type GameAction = {
   point: Point;
   direction: Direction;
