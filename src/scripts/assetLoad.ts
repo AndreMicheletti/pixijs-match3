@@ -3,6 +3,7 @@ import { SymbolID } from "./types";
 
 export enum GameFont {
   DirtyHarold = 'DirtyHarold',
+  Poppins = 'Poppins Bold',
 };
 
 export const GameAssets = {
@@ -14,6 +15,7 @@ export const GameAssets = {
   buttonBasePressed: 'btn_base_pressed.png',
   fonts: [
     'fonts/DirtyHarold.woff2',
+    'fonts/Poppins-Bold.ttf',
   ],
 }
 

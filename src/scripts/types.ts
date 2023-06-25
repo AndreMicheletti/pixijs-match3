@@ -1,7 +1,7 @@
 import { DisplayObject, Point } from "pixi.js";
 
 export interface IScene extends DisplayObject {
-  update(): void;
+  update(delta: number): void;
 
   onEnter(): Promise<void>;
 

@@ -1,21 +1,24 @@
-import { Container, Point, Ticker } from "pixi.js";
+import { Color, Container, Point, Sprite, Text, TextStyle, Texture, Ticker } from "pixi.js";
+import { Manager, SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
+import GameUI from "../components/GameUIComponent";
 import SymbolComponent from "../components/SymbolComponent";
-import { animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition } from "../scripts/animationHandler";
+import { BoardGroup, animateBoardImpact, animateScoreFeedback, animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition, fadeComponent } from "../scripts/animationHandler";
+import { GameFont } from "../scripts/assetLoad";
 import { applyActionOnBoard, createAction, getActionHash, getActionTargetPoint, getBoardValidActions } from "../scripts/board/actionHandler";
 import { BOARD_SIZE, SYMBOL_MARGIN, SYMBOL_SIZE, applyBoardGravity, copyBoard, findGravityDrops, isAdjacent, makeFirstBoard } from "../scripts/board/boardHandler";
-import { getCombinationsInBoard, removeCombinationsFromBoard } from "../scripts/board/combinationHandler";
+import { getCombinationScore, getCombinationsInBoard, removeCombinationsFromBoard } from "../scripts/board/combinationHandler";
 import { BoardMatrix, GameAction, GameCombination, IScene, SymbolID } from "../scripts/types";
 import { rangeArray } from "../scripts/utils";
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
+import ButtonComponent from "../components/ButtonComponent";
 
 export class GameScene extends Container implements IScene {
+  private readonly limitScore = 500;
+
   private board: BoardMatrix = [];
 
   private validActions: Array<number> = [];
 
   private boardContainer: Container;
-
-  private symbols: Array<SymbolComponent> = [];
 
   private refillSymbols: Record<number, Array<SymbolComponent>> = {};
 
@@ -23,8 +26,18 @@ export class GameScene extends Container implements IScene {
 
   private targetSymbol: SymbolComponent | null = null;
 
+  // #region Components
+  private symbols: Array<SymbolComponent> = [];
+
+  private ui: GameUI;
+
+  private gameOver: Container;
+  // #endregion
+
   // When game is processing round, interactions are disabled
   private _processing = false;
+
+  private isGameOver = false;
 
   private get processing(): boolean {
     return this._processing;
@@ -39,9 +52,13 @@ export class GameScene extends Container implements IScene {
 
   constructor() {
     super();
+    this.gameOver = this.makeGameOver();
+    this.ui = new GameUI(60, this.processGameOver.bind(this));
     this.board = makeFirstBoard();
     this.boardContainer = this.createBoardContainer();
     this.addChild(this.boardContainer);
+    this.addChild(this.ui);
+    this.addChild(this.gameOver);
     this.calculateValidActions();
     // Add ticker functions
     Ticker.shared.add(this.update, this);
@@ -57,10 +74,18 @@ export class GameScene extends Container implements IScene {
   }
 
   public update(): void {
+    if (this.isGameOver === false) this.ui.time -= Ticker.shared.elapsedMS / 2000.0;
+    BoardGroup.update(Ticker.shared.elapsedMS);
     this.updateSymbolInputFeedback();
   }
 
   // #region Game Flow
+
+  private processGameOver(): void {
+    this.processing = true;
+    this.isGameOver = true;
+    fadeComponent(this.gameOver, 500, 1);
+  }
 
   /**
    *  Starts processing the action taken by the player.
@@ -86,7 +111,8 @@ export class GameScene extends Container implements IScene {
       await animateSymbolSwap(symbol, targetSymbol);
       await animateSymbolSwap(targetSymbol, symbol);
     }
-    this.processing = false;
+    if (this.ui.score >= this.limitScore) this.processGameOver();
+    else this.processing = false;
   }
 
   /**
@@ -96,15 +122,17 @@ export class GameScene extends Container implements IScene {
    */
   private async processCombinations(combinations: Array<GameCombination>): Promise<void> {
     if (combinations.length <= 0) return;
+    const { scoreValueLabel } = this.ui;
     this.board = removeCombinationsFromBoard(this.board, combinations);
-    await Promise.all(combinations.map((combination) =>
-      Promise.all(combination.map(async (point) => {
+    await Promise.all(combinations.map((combination) => {
+      this.showScoreFeedback(combination);
+      return Promise.all(combination.map(async (point) => {
         const symbol = this.getSymbolOnPoint(point);
         if (!symbol) return;
         await animateSymbolExplode(symbol);
         this.addSymbolToRefill(symbol, new Point(point.x, -1))
       }))
-    ));
+    }));
     await this.processSymbolsFall();
     await this.processSymbolRefill();
     this.updateSymbolsToBoardData();
@@ -130,6 +158,7 @@ export class GameScene extends Container implements IScene {
         symbol.symbolID = board[newPoint.y][newPoint.x];
       }));
     }
+    animateBoardImpact(this.boardContainer, 775, 6);
     await Promise.all(allDrops);
     this.board = copyBoard(board);
   }
@@ -145,6 +174,7 @@ export class GameScene extends Container implements IScene {
         const position = this.getPositionForPoint(point);
         symbol.boardPos = new Point(symbol.boardPos.x, 0 - symbolList.length + y);
         symbol.symbolID = this.board[y][+x];
+        animateBoardImpact(this.boardContainer, 650);
         await animateSymbolToPosition(symbol, position);
         symbol.boardPos = point;
       }))
@@ -257,6 +287,75 @@ export class GameScene extends Container implements IScene {
     symbol.on('pointerupoutside', () => this.onSymbolRelease());
     symbol.eventMode = this.processing ? 'none' : 'static';
     return symbol;
+  }
+
+  private makeGameOver(): Container {
+    const gameOverContainer = new Container();
+    // Create Black layer
+    const blackLayer = new Sprite(Texture.WHITE);
+    blackLayer.tint = 'black';
+    blackLayer.width = SCREEN_WIDTH;
+    blackLayer.height = SCREEN_HEIGHT;
+    blackLayer.alpha = 0.7;
+    // Create Text
+    const gameOverText = new Text('GAME OVER', new TextStyle({
+      fontFamily: GameFont.DirtyHarold,
+      fill: ["#bc2424", "#6d0f0f"],
+      fontSize: 90,
+      stroke: "#450f0f",
+      strokeThickness: 5,
+      fontWeight: 'bold',
+    }));
+    gameOverText.anchor.set(0.5);
+    gameOverText.x = SCREEN_WIDTH / 2;
+    gameOverText.y = SCREEN_HEIGHT / 2 - 100;
+    // Button
+    const replayButton = new ButtonComponent({
+      text: 'REPLAY',
+      width: 130,
+      height: 60,
+      tint: new Color('#832d2d'),
+      hoverTint: new Color('#a83a3a'),
+      textStyle: new TextStyle({
+        fontFamily: GameFont.Poppins,
+        fill: "white",
+        fontSize: 20,
+      }),
+      borders: ButtonComponent.borders(3, 3)
+    });
+    replayButton.x = SCREEN_WIDTH / 2 - replayButton.width / 2;
+    replayButton.y = gameOverText.y + 100;
+    replayButton.on('click', () => Manager.changeScene(new GameScene()));
+    // Add components to container
+    gameOverContainer.addChild(blackLayer);
+    gameOverContainer.addChild(gameOverText);
+    gameOverContainer.addChild(replayButton);
+    gameOverContainer.alpha = 0;
+    return gameOverContainer;
+  }
+
+  private async showScoreFeedback(combination: GameCombination): Promise<void> {
+    const { scoreValueLabel } = this.ui;
+    const score = getCombinationScore(combination);
+    const symbol = this.getSymbolOnPoint(combination[1]);
+    if (!symbol) return;
+    const text = new Text(`${score}`, new TextStyle({
+      fontFamily: GameFont.Poppins,
+      fontSize: 30,
+      fill: 'white',
+      stroke: 'black',
+      strokeThickness: 5,
+      align: "center",
+    }));
+    text.anchor.set(0.5);
+    text.x = symbol.x + 115;
+    text.y = symbol.y + 30;
+    this.addChild(text);
+    const target = new Point(scoreValueLabel.x + 20, scoreValueLabel.y + 35);
+    await animateScoreFeedback(text, target, () => {
+      this.ui.score += score;
+    });
+    text.destroy();
   }
 
   // #endregion

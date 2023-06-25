@@ -19,6 +19,8 @@ export class Manager {
       width: SCREEN_WIDTH,
       height: SCREEN_HEIGHT,
     });
+    Manager.app.ticker.minFPS = 30;
+    Manager.app.ticker.maxFPS = 60;
     Manager.app.ticker.add(Manager.update);
     Manager.app.ticker.add(() => Tweedle.Group.shared.update(Ticker.shared.elapsedMS), this);
     return Manager.app;
@@ -39,7 +41,7 @@ export class Manager {
     return Manager.app;
   }
 
-  private static update(): void {
-    if (Manager.currentScene) Manager.currentScene.update();
+  private static update(delta: number): void {
+    if (Manager.currentScene) Manager.currentScene.update(delta);
   }
 }

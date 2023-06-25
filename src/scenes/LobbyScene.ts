@@ -17,7 +17,29 @@ export class LobbyScene extends Container implements IScene {
     this.playButton.on('click', this.onPlayClicked, this);
   }
 
-  public onEnter(): Promise<void> {
+  public async onEnter(): Promise<void> {
+    await this.playIntroTween();
+    new Tween(this.title)
+      .to({ scale: { x: 1.05, y: 1.05 } }, 1000)
+      .easing(Easing.Cubic.InOut)
+      .yoyo(true)
+      .repeat(Infinity)
+      .start();
+  }
+
+  public async onLeave(): Promise<void> {
+    // Empty
+  }
+
+  public update(): void {
+    // Empty
+  }
+
+  private onPlayClicked(): void {
+    Manager.changeScene(new GameScene());
+  }
+
+  private playIntroTween(): Promise<void> {
     return new Promise<void>((resolve) => {
       const y = this.playButton.y;
       this.title.scale.set(0);
@@ -33,18 +55,6 @@ export class LobbyScene extends Container implements IScene {
         .onComplete(() => resolve())
         .start();
     });
-  }
-
-  public async onLeave(): Promise<void> {
-    // Empty
-  }
-
-  public update(): void {
-    // Empty
-  }
-
-  private onPlayClicked(): void {
-    Manager.changeScene(new GameScene());
   }
 
   private makeTitle(): Text {
@@ -64,23 +74,20 @@ export class LobbyScene extends Container implements IScene {
   }
 
   private makePlayButton(): ButtonComponent {
-    const width = 150;
     const btn = new ButtonComponent({
       text: 'PLAY',
-      width,
-      height: 80,
-      tint: new Color('#454545'),
-      hoverTint: new Color('#646464'),
+      width: 130,
+      height: 60,
+      tint: new Color('#FFFFFF'),
+      hoverTint: new Color('#dcdcdc'),
       textStyle: new TextStyle({
-        fontFamily: GameFont.DirtyHarold,
-        fill: ["#ffe987", "#c3b54b"],
-        fontSize: 45,
-        stroke: "#715b02",
-        strokeThickness: 5
+        fontFamily: GameFont.Poppins,
+        fill: "#000000",
+        fontSize: 20,
       }),
       borders: ButtonComponent.borders(3, 3)
     });
-    btn.x = SCREEN_WIDTH / 2 - width / 2;
+    btn.x = SCREEN_WIDTH / 2 - btn.width / 2;
     btn.y = 350;
     this.addChild(btn);
     return btn;

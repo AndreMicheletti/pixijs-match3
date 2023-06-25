@@ -59,3 +59,11 @@ export function removeCombinationsFromBoard(board: BoardMatrix, combinations: Ar
   );
   return auxBoard;
 }
+
+/** Calculates a combination score based on how many symbols it matched */
+export function getCombinationScore(combination: GameCombination): number {
+  const { length } = combination;
+  if (length > 10) return length * 8;
+  if (length > 5) return length * 5;
+  return length * 2;
+}
