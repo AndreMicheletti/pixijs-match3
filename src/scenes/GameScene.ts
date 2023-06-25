@@ -1,23 +1,14 @@
-import { Container, Point, Sprite, Ticker } from "pixi.js";
-import * as Tween from "tweedle.js";
-import { BoardMatrix, GameAction, GameCombination, SymbolID } from "../Types";
-import { animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition } from "../animationHandler";
-import { applyActionOnBoard, createAction, getActionHash, getActionTargetPoint, getBoardValidActions } from "../board/actionHandler";
-import { applyBoardGravity, copyBoard, findGravityDrops, isAdjacent, makeFirstBoard } from "../board/boardHandler";
-import { getCombinationsInBoard, removeCombinationsFromBoard } from "../board/combinationHandler";
+import { Container, Point, Ticker } from "pixi.js";
 import SymbolComponent from "../components/SymbolComponent";
-import { rangeArray } from "../utils";
-import { getAssets } from "../assetLoad";
+import { animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition } from "../scripts/animationHandler";
+import { applyActionOnBoard, createAction, getActionHash, getActionTargetPoint, getBoardValidActions } from "../scripts/board/actionHandler";
+import { BOARD_SIZE, SYMBOL_MARGIN, SYMBOL_SIZE, applyBoardGravity, copyBoard, findGravityDrops, isAdjacent, makeFirstBoard } from "../scripts/board/boardHandler";
+import { getCombinationsInBoard, removeCombinationsFromBoard } from "../scripts/board/combinationHandler";
+import { BoardMatrix, GameAction, GameCombination, IScene, SymbolID } from "../scripts/types";
+import { rangeArray } from "../scripts/utils";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
 
-export const SymbolSize = 48;
-export const SymbolMargin = 2;
-
-export class GameScene extends Container {
-  private readonly screenWidth: number;
-  private readonly screenHeight: number;
-
-  private background: Sprite;
-
+export class GameScene extends Container implements IScene {
   private board: BoardMatrix = [];
 
   private validActions: Array<number> = [];
@@ -46,23 +37,26 @@ export class GameScene extends Container {
     });
   }
 
-  constructor(screenWidth: number, screenHeight: number) {
+  constructor() {
     super();
-    this.screenWidth = screenWidth;
-    this.screenHeight = screenHeight;
-    this.background = this.makeBackground();
     this.board = makeFirstBoard();
     this.boardContainer = this.createBoardContainer();
-    this.addChild(this.background);
     this.addChild(this.boardContainer);
     this.calculateValidActions();
     // Add ticker functions
     Ticker.shared.add(this.update, this);
-    Ticker.shared.add(() => Tween.Group.shared.update(Ticker.shared.elapsedMS), this);
     this.processing = false;
   }
 
-  protected update(): void {
+  public async onEnter(): Promise<void> {
+    // Empty
+  }
+
+  public async onLeave(): Promise<void> {
+    // Empty
+  }
+
+  public update(): void {
     this.updateSymbolInputFeedback();
   }
 
@@ -77,15 +71,21 @@ export class GameScene extends Container {
     const targetPoint = getActionTargetPoint(action);
     const symbol = this.getSymbolOnPoint(action.point);
     const targetSymbol = this.getSymbolOnPoint(targetPoint);
-    if (symbol && targetSymbol) {
+    const isValid = this.validActions.includes(getActionHash(action))
+    if (isValid && symbol && targetSymbol) {
+      // Valid Action
       this.board = applyActionOnBoard(this.board, action);
       await animateSymbolSwap(symbol, targetSymbol);
       symbol.boardPos = targetSymbol.boardPos;
       targetSymbol.boardPos = action.point;
       const combinations = getCombinationsInBoard(this.board);
       await this.processCombinations(combinations);
+      this.calculateValidActions();
+    } else {
+      // Invalid Action
+      await animateSymbolSwap(symbol, targetSymbol);
+      await animateSymbolSwap(targetSymbol, symbol);
     }
-    this.calculateValidActions();
     this.processing = false;
   }
 
@@ -125,7 +125,7 @@ export class GameScene extends Container {
         const symbol = this.getSymbolOnPoint(point);
         if (!symbol) return;
         const pos = this.getPositionForPoint(newPoint);
-        await animateSymbolToPosition(symbol, pos);
+        await animateSymbolToPosition(symbol, pos, { duration: 400 });
         symbol.boardPos = newPoint;
         symbol.symbolID = board[newPoint.y][newPoint.x];
       }));
@@ -177,7 +177,7 @@ export class GameScene extends Container {
   }
 
   private getPositionForPoint({ x, y }: Point): Point {
-    const size = SymbolSize + SymbolMargin;
+    const size = SYMBOL_SIZE + SYMBOL_MARGIN;
     return new Point(x * size, y * size);
   }
 
@@ -209,8 +209,7 @@ export class GameScene extends Container {
     if (this.tappedSymbol && this.targetSymbol) {
       // take action
       const action = createAction(this.tappedSymbol.boardPos, this.targetSymbol.boardPos);
-      const actionHash = getActionHash(action);
-      if (this.validActions.includes(actionHash)) this.processAction(action);
+      this.processAction(action);
     }
     this.tappedSymbol = null;
     this.targetSymbol = null;
@@ -219,7 +218,9 @@ export class GameScene extends Container {
 
   private updateSymbolInputFeedback(): void {
     this.symbols.forEach((sb) => {
-      sb.alpha = sb === this.tappedSymbol || sb === this.targetSymbol ? 0.5 : 1;
+      const isHighlighted = sb === this.tappedSymbol || sb === this.targetSymbol;
+      sb.width = isHighlighted ? SYMBOL_SIZE + 5 : SYMBOL_SIZE;
+      sb.height = isHighlighted ? SYMBOL_SIZE + 5 : SYMBOL_SIZE;
     });
   }
 
@@ -230,14 +231,14 @@ export class GameScene extends Container {
   private createBoardContainer(): Container {
     const container = new Container();
     // Move container to the center
-    container.x = this.screenWidth / 2;
-    container.y = this.screenHeight / 2;
+    container.x = SCREEN_WIDTH / 2;
+    container.y = SCREEN_HEIGHT / 2;
     // Add Symbol Components
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
         const symbolId = this.board[r][c];
         const boardPos = new Point(c, r);
-        const symbol = this.makeSymbol(symbolId, SymbolSize, boardPos);
+        const symbol = this.makeSymbol(symbolId, SYMBOL_SIZE, boardPos);
         symbol.position = this.getPositionForPoint(new Point(c, r));
         this.symbols.push(symbol);
         container.addChild(symbol);
@@ -256,15 +257,6 @@ export class GameScene extends Container {
     symbol.on('pointerupoutside', () => this.onSymbolRelease());
     symbol.eventMode = this.processing ? 'none' : 'static';
     return symbol;
-  }
-
-  private makeBackground(): Sprite {
-    const background = new Sprite(getAssets().background);
-    background.anchor.set(0.5);
-    background.position = new Point(this.screenWidth / 2, this.screenHeight / 2);
-    background.width = this.screenWidth;
-    background.height = this.screenHeight;
-    return background;
   }
 
   // #endregion

@@ -1,4 +1,12 @@
-import { Point } from "pixi.js";
+import { DisplayObject, Point } from "pixi.js";
+
+export interface IScene extends DisplayObject {
+  update(): void;
+
+  onEnter(): Promise<void>;
+
+  onLeave(): Promise<void>;
+}
 
 export enum SymbolID {
   Empty = -1,

@@ -1,6 +1,6 @@
 import { Point } from "pixi.js";
-import { GameAction, BoardMatrix, GameCombination, Direction } from "../Types";
-import { copyBoard } from "./boardHandler";
+import { GameAction, BoardMatrix, GameCombination, Direction } from "../types";
+import { BOARD_SIZE, copyBoard } from "./boardHandler";
 import { getCombinationsInBoard } from "./combinationHandler";
 
 /**
@@ -53,8 +53,8 @@ function getSwapCombinations(board: BoardMatrix, action: GameAction): Array<Game
 
 export function getBoardValidActions(board: BoardMatrix): Array<GameAction> {
   const validActions: Array<GameAction> = [];
-  for (let y = 0; y < board.length; y++) {
-    for (let x = 0; x < board.length; x++) {
+  for (let y = 0; y < BOARD_SIZE; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
       // Try Horizontal Action
       const hAction: GameAction = { direction: Direction.Horizontal, point: new Point(x, y) };
       if (getSwapCombinations(board, hAction).length > 0) validActions.push(hAction);

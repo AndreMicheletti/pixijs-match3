@@ -1,5 +1,5 @@
 import { Point } from "pixi.js";
-import { BoardMatrix, GameCombination, SymbolID } from "../Types";
+import { BoardMatrix, GameCombination, SymbolID } from "../types";
 import { copyBoard } from "./boardHandler";
 
 function includesPoint(arr: Array<Point>, { x, y }: Point): boolean {

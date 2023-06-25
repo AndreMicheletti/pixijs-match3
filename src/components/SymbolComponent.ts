@@ -1,7 +1,7 @@
 import { Point, Sprite } from "pixi.js";
-import { SymbolID } from "../Types";
-import { getSymbolTexture } from "../assetLoad";
-import { SymbolMargin, SymbolSize } from "../scenes/GameScene";
+import { getSymbolTexture } from "../scripts/assetLoad";
+import { SYMBOL_MARGIN, SYMBOL_SIZE } from "../scripts/board/boardHandler";
+import { SymbolID } from "../scripts/types";
 
 export default class SymbolComponent extends Sprite {
   private _symbolID: SymbolID;
@@ -37,7 +37,7 @@ export default class SymbolComponent extends Sprite {
   }
 
   protected updatePosition(): void {
-    const size = SymbolSize + SymbolMargin;
+    const size = SYMBOL_SIZE + SYMBOL_MARGIN;
     this.position = new Point(this.boardPos.x * size, this.boardPos.y * size);
   }
 

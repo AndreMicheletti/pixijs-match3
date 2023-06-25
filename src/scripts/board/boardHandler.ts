@@ -1,8 +1,14 @@
 import { Point } from "pixi.js";
-import { BoardMatrix, SymbolDrop, SymbolID } from "../Types";
+import { BoardMatrix, SymbolDrop, SymbolID } from "../types";
 import { getCombinationsInBoard } from "./combinationHandler";
-import { rangeArray } from "../utils";
 import { getBoardValidActions } from "./actionHandler";
+import { rangeArray } from "../utils";
+
+export const SYMBOL_SIZE = 48;
+
+export const SYMBOL_MARGIN = 2;
+
+export const BOARD_SIZE = 8;
 
 const InitialBoard = [
   [1, 0, 0, 0, 0, 0, 0, 0],

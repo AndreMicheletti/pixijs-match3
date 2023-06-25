@@ -1,21 +1,28 @@
-import { Application } from 'pixi.js';
-import { loadAssets } from './assetLoad';
-import { GameScene } from './scenes/GameScene';
+import { Application, Point, Sprite } from 'pixi.js';
+import { Manager, SCREEN_HEIGHT, SCREEN_WIDTH } from './Manager';
+import { LobbyScene } from './scenes/LobbyScene';
+import { loadAssets, loadBackground } from './scripts/assetLoad';
+
+async function makeBackground(): Promise<Sprite> {
+  const background = new Sprite(await loadBackground());
+  background.anchor.set(0.5);
+  background.position = new Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+  background.width = SCREEN_WIDTH;
+  background.height = SCREEN_HEIGHT;
+  return background;
+}
+
+async function loadGame(app: Application): Promise<void> {
+  const background = await makeBackground();
+  app.stage.addChild(background);
+  await loadAssets((progress: number) => console.log('PROGRESS: ', progress));
+}
 
 (async function () {
-  const app = new Application({
-    view: document.getElementById("pixi-canvas") as HTMLCanvasElement,
-    resolution: window.devicePixelRatio || 1,
-    autoDensity: true,
-    backgroundColor: 0x6495ed,
-    width: 640,
-    height: 480,
-  });
-
+  const app = Manager.initialize();
   // Pixi DevTools
-  (globalThis as any).__PIXI_APP__ = app; // eslint-disable-line
+  (globalThis as any).__PIXI_APP__ = app;
 
-  await loadAssets();
-  const gameScene = new GameScene(app.screen.width, app.screen.height);
-  app.stage.addChild(gameScene);
+  await loadGame(app);
+  Manager.changeScene(new LobbyScene());
 })();
