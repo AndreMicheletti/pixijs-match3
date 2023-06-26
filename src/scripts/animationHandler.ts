@@ -1,7 +1,8 @@
 import { Container, DisplayObject, Point, Text } from 'pixi.js';
 import { Easing, EasingFunction, Group, Tween } from 'tweedle.js';
 
-import SymbolComponent from "../components/SymbolComponent";
+import FireFXComponent from '../components/generic/FireFXComponent';
+import SymbolComponent from "../components/generic/SymbolComponent";
 
 export const BoardGroup = new Group();
 
@@ -35,20 +36,22 @@ export async function animateSymbolSwap(origin: SymbolComponent, target: SymbolC
 }
 
 export function animateSymbolExplode(symbol: SymbolComponent): Promise<void> {
+  FireFXComponent.spawnFireFX(new Point(symbol.x, symbol.y), symbol.parent);
   return new Promise<void>((resolve) =>
     new Tween(symbol)
-      .to({ scale: 4, alpha: 0 }, 1000)
+      .to({ scale: 4, alpha: 0 }, 800)
       .easing(Easing.Quadratic.Out)
       .onComplete(() => resolve())
       .start()
   );
 }
 
-export function animateScoreFeedback(text: Text, { x, y }: Point, onReach?: () => void): Promise<void> {
+export function animateScoreFeedback(text: Text, score: number, { x, y }: Point, onReach?: () => void): Promise<void> {
+  const targetScale = score > 20 ? 1.5 : 1;
   return new Promise<void>((resolve) => {
     text.scale.set(0, 0);
     const appear = new Tween(text)
-      .to({ scale: { x: 1, y: 1 } }, 500)
+      .to({ scale: { x: targetScale, y: targetScale } }, 500)
       .easing(Easing.Elastic.Out);
     const disappear = new Tween(text)
       .to({ scale: { x: 3, y: 3 }, alpha: 0 }, 200)
@@ -86,4 +89,13 @@ export function fadeComponent(object: DisplayObject, duration: number, alpha = 1
       .onComplete(() => resolve())
       .start()
   );
+}
+
+export function bounceComponentForever(object: DisplayObject): void {
+  new Tween(object)
+    .to({ scale: { x: 1.05, y: 1.05 } }, 1000)
+    .easing(Easing.Cubic.InOut)
+    .yoyo(true)
+    .repeat(Infinity)
+    .start();
 }

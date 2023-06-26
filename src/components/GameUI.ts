@@ -1,13 +1,24 @@
-import { Container, Text, TextStyle } from "pixi.js";
+import { Color, Container, Text, TextStyle } from "pixi.js";
 import { SCREEN_WIDTH } from "../Manager";
 import { GameFont } from "../scripts/assetLoad";
 
 export default class GameUI extends Container {
+  private readonly timerColor = new Color('#FFFFFF');
+  private readonly timerCriticalColor = new Color('#e35a5a');
+
+  // #region Components
+
   public readonly scoreValueLabel: Text;
-  
+
   private readonly scoreLabel: Text;
+
+  private readonly targetLabel: Text;
+
   private readonly timerLabel: Text;
+
   private readonly timerValueLabel: Text;
+
+  // #endregion
 
   private onTimeEnd: () => void;
 
@@ -37,23 +48,25 @@ export default class GameUI extends Container {
     const minutes = Math.floor(this._time / 60).toString().padStart(2, '0');
     const seconds = Math.floor(this._time % 60).toString().padStart(2, '0');
     this.timerValueLabel.text = `${minutes}:${seconds}`;
+    this.timerValueLabel.tint = val <= 10 ? this.timerCriticalColor : this.timerColor;
   }
 
   /**
    * Creates the Game UI
    * @param startingTime time in seconds
    */
-  constructor(startingTime: number, onTimeEnd: () => void) {
+  constructor(startingTime: number, targetScore: number, onTimeEnd: () => void) {
     super();
     this._time = startingTime;
     this.onTimeEnd = onTimeEnd;
-    this.scoreLabel = this.makeScoreLabel('SCORE', 22, 15);
-    this.scoreValueLabel = this.makeScoreLabel('0', 40, 40);
-    this.timerLabel = this.makeScoreLabel('TIME', 22, 120);
-    this.timerValueLabel = this.makeScoreLabel('00:00', 40, 145);
+    this.scoreLabel = this.makeLabel('SCORE', 22, 15);
+    this.scoreValueLabel = this.makeLabel('0', 40, 40);
+    this.targetLabel = this.makeLabel(`TARGET: ${targetScore}`, 12, 90);
+    this.timerLabel = this.makeLabel('TIME', 22, 120);
+    this.timerValueLabel = this.makeLabel('00:00', 40, 145);
   }
 
-  private makeScoreLabel(content: string, fontSize: number, y: number): Text {
+  private makeLabel(content: string, fontSize: number, y: number): Text {
     const text = new Text(content, new TextStyle({
       fontFamily: GameFont.Poppins,
       fill: 'white',

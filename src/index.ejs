@@ -1,19 +1,26 @@
 <html>
-  <head>
-    <title>Zombie Match3</title>
-    <meta id="viewport" name="viewport"
-      content="width=device-width, minimum-scale=1.0, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
-  </head>
 
-  <body>
-    <noscript>Please enable JavaScript in your web browser to view this page.</noscript>
-    <div id="pixi-content">
-      <canvas id="pixi-canvas" />
+<head>
+  <title>Zombie Match3</title>
+  <meta id="viewport" name="viewport"
+    content="width=device-width, minimum-scale=1.0, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <noscript>Please enable JavaScript in your web browser to view this page.</noscript>
+  <div id="pixi-content">
+    <div id="loading">
+      <div id="bar">
+        <div id="bar-fill"></div>
+      </div>
     </div>
-  </body>
+    <canvas id="pixi-canvas" />
+  </div>
+</body>
+
 </html>

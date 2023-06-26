@@ -1,5 +1,5 @@
 import { Assets, Color, NineSlicePlane, Text, TextStyle, Texture } from "pixi.js";
-import { GameAssets } from "../scripts/assetLoad";
+import { GameAssets } from "../../scripts/assetLoad";
 
 export type ButtonBorders = {
   left?: number;
@@ -21,7 +21,7 @@ export type ButtonStyle = {
 export default class ButtonComponent extends NineSlicePlane {
   private readonly style: ButtonStyle;
 
-  private label: Text;
+  public label: Text;
 
   static allBorders(value: number): ButtonBorders {
     return {

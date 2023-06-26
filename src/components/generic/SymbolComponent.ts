@@ -1,7 +1,7 @@
 import { Point, Sprite } from "pixi.js";
-import { getSymbolTexture } from "../scripts/assetLoad";
-import { SYMBOL_MARGIN, SYMBOL_SIZE } from "../scripts/board/boardHandler";
-import { SymbolID } from "../scripts/types";
+import { getSymbolTexture } from "../../scripts/assetLoad";
+import { SYMBOL_MARGIN, SYMBOL_SIZE } from "../../scripts/board/boardHandler";
+import { SymbolID } from "../../scripts/types";
 
 export default class SymbolComponent extends Sprite {
   private _symbolID: SymbolID;

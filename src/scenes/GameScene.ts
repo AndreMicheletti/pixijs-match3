@@ -1,18 +1,20 @@
 import { Color, Container, Point, Sprite, Text, TextStyle, Texture, Ticker } from "pixi.js";
 import { Manager, SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
-import GameUI from "../components/GameUIComponent";
-import SymbolComponent from "../components/SymbolComponent";
-import { BoardGroup, animateBoardImpact, animateScoreFeedback, animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition, fadeComponent } from "../scripts/animationHandler";
+import GameUI from "../components/GameUI";
+import SymbolComponent from "../components/generic/SymbolComponent";
+import { BoardGroup, animateBoardImpact, animateScoreFeedback, animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition, bounceComponentForever, fadeComponent } from "../scripts/animationHandler";
 import { GameFont } from "../scripts/assetLoad";
 import { applyActionOnBoard, createAction, getActionHash, getActionTargetPoint, getBoardValidActions } from "../scripts/board/actionHandler";
 import { BOARD_SIZE, SYMBOL_MARGIN, SYMBOL_SIZE, applyBoardGravity, copyBoard, findGravityDrops, isAdjacent, makeFirstBoard } from "../scripts/board/boardHandler";
 import { getCombinationScore, getCombinationsInBoard, removeCombinationsFromBoard } from "../scripts/board/combinationHandler";
-import { BoardMatrix, GameAction, GameCombination, IScene, SymbolID } from "../scripts/types";
+import { BoardMatrix, GameAction, GameCombination, GameRules, IScene, SymbolID } from "../scripts/types";
 import { rangeArray } from "../scripts/utils";
-import ButtonComponent from "../components/ButtonComponent";
+import ButtonComponent from "../components/generic/ButtonComponent";
+import { Easing, Tween } from "tweedle.js";
+import GameOver from "../components/GameOver";
 
 export class GameScene extends Container implements IScene {
-  private readonly limitScore = 500;
+  private readonly rules: GameRules;
 
   private board: BoardMatrix = [];
 
@@ -31,13 +33,15 @@ export class GameScene extends Container implements IScene {
 
   private ui: GameUI;
 
-  private gameOver: Container;
+  private gameOver: GameOver;
   // #endregion
 
   // When game is processing round, interactions are disabled
   private _processing = false;
 
   private isGameOver = false;
+
+  private hasWon = false;
 
   private get processing(): boolean {
     return this._processing;
@@ -50,15 +54,16 @@ export class GameScene extends Container implements IScene {
     });
   }
 
-  constructor() {
+  constructor(rules: GameRules) {
     super();
-    this.gameOver = this.makeGameOver();
-    this.ui = new GameUI(60, this.processGameOver.bind(this));
+    this.rules = rules;
+    this.gameOver = new GameOver(this.startNewGame.bind(this));
+    this.ui = new GameUI(rules.limitTime, rules.limitScore, this.onTimerEnded.bind(this));
     this.board = makeFirstBoard();
     this.boardContainer = this.createBoardContainer();
+    this.boardContainer.scale = { x: 1.3, y: 1.3 };
     this.addChild(this.boardContainer);
     this.addChild(this.ui);
-    this.addChild(this.gameOver);
     this.calculateValidActions();
     // Add ticker functions
     Ticker.shared.add(this.update, this);
@@ -66,7 +71,19 @@ export class GameScene extends Container implements IScene {
   }
 
   public async onEnter(): Promise<void> {
-    // Empty
+    const initialY = this.boardContainer.y;
+    this.boardContainer.y = initialY + 100;
+    await new Promise<void>((resolve) => {
+      new Tween(this.boardContainer)
+        .to({ scale: { x: 1, y: 1 }, y: initialY }, 300)
+        .easing(Easing.Quadratic.Out)
+        .onComplete(() => resolve())
+        .start();
+      new Tween(Manager.background)
+        .to({ blur: 1 }, 300)
+        .easing(Easing.Quadratic.Out)
+        .start();
+    });
   }
 
   public async onLeave(): Promise<void> {
@@ -81,10 +98,22 @@ export class GameScene extends Container implements IScene {
 
   // #region Game Flow
 
-  private processGameOver(): void {
+  private processGameOver(won: boolean): void {
+    this.hasWon = won;
     this.processing = true;
     this.isGameOver = true;
-    fadeComponent(this.gameOver, 500, 1);
+    this.addChild(this.gameOver);
+    this.gameOver.alpha = 0;
+    this.gameOver.show(won, this.ui.score);
+  }
+
+  private startNewGame(): void {
+    const { limitScore, limitTime } = this.rules;
+    const newRules = this.hasWon ? {
+      limitScore: limitScore + 100,
+      limitTime: limitTime,
+    } : { limitScore, limitTime };
+    Manager.changeScene(new GameScene(newRules));
   }
 
   /**
@@ -111,7 +140,8 @@ export class GameScene extends Container implements IScene {
       await animateSymbolSwap(symbol, targetSymbol);
       await animateSymbolSwap(targetSymbol, symbol);
     }
-    if (this.ui.score >= this.limitScore) this.processGameOver();
+    if (this.ui.score >= this.rules.limitScore) this.processGameOver(true);
+    else if (this.isGameOver === true) this.processGameOver(false);
     else this.processing = false;
   }
 
@@ -153,12 +183,12 @@ export class GameScene extends Container implements IScene {
         const symbol = this.getSymbolOnPoint(point);
         if (!symbol) return;
         const pos = this.getPositionForPoint(newPoint);
-        await animateSymbolToPosition(symbol, pos, { duration: 400 });
+        await animateSymbolToPosition(symbol, pos, { duration: 400, easing: Easing.Quartic.In });
         symbol.boardPos = newPoint;
         symbol.symbolID = board[newPoint.y][newPoint.x];
       }));
     }
-    animateBoardImpact(this.boardContainer, 775, 6);
+    animateBoardImpact(this.boardContainer, 785, 4);
     await Promise.all(allDrops);
     this.board = copyBoard(board);
   }
@@ -175,7 +205,7 @@ export class GameScene extends Container implements IScene {
         symbol.boardPos = new Point(symbol.boardPos.x, 0 - symbolList.length + y);
         symbol.symbolID = this.board[y][+x];
         animateBoardImpact(this.boardContainer, 650);
-        await animateSymbolToPosition(symbol, position);
+        await animateSymbolToPosition(symbol, position, { easing: Easing.Quartic.In });
         symbol.boardPos = point;
       }))
     ));
@@ -246,6 +276,12 @@ export class GameScene extends Container implements IScene {
     this.updateSymbolInputFeedback();
   }
 
+  private onTimerEnded(): void {
+    if (this.isGameOver === true) return;
+    this.isGameOver = true;
+    if (this.processing === false) this.processGameOver(false);
+  }
+
   private updateSymbolInputFeedback(): void {
     this.symbols.forEach((sb) => {
       const isHighlighted = sb === this.tappedSymbol || sb === this.targetSymbol;
@@ -289,51 +325,6 @@ export class GameScene extends Container implements IScene {
     return symbol;
   }
 
-  private makeGameOver(): Container {
-    const gameOverContainer = new Container();
-    // Create Black layer
-    const blackLayer = new Sprite(Texture.WHITE);
-    blackLayer.tint = 'black';
-    blackLayer.width = SCREEN_WIDTH;
-    blackLayer.height = SCREEN_HEIGHT;
-    blackLayer.alpha = 0.7;
-    // Create Text
-    const gameOverText = new Text('GAME OVER', new TextStyle({
-      fontFamily: GameFont.DirtyHarold,
-      fill: ["#bc2424", "#6d0f0f"],
-      fontSize: 90,
-      stroke: "#450f0f",
-      strokeThickness: 5,
-      fontWeight: 'bold',
-    }));
-    gameOverText.anchor.set(0.5);
-    gameOverText.x = SCREEN_WIDTH / 2;
-    gameOverText.y = SCREEN_HEIGHT / 2 - 100;
-    // Button
-    const replayButton = new ButtonComponent({
-      text: 'REPLAY',
-      width: 130,
-      height: 60,
-      tint: new Color('#832d2d'),
-      hoverTint: new Color('#a83a3a'),
-      textStyle: new TextStyle({
-        fontFamily: GameFont.Poppins,
-        fill: "white",
-        fontSize: 20,
-      }),
-      borders: ButtonComponent.borders(3, 3)
-    });
-    replayButton.x = SCREEN_WIDTH / 2 - replayButton.width / 2;
-    replayButton.y = gameOverText.y + 100;
-    replayButton.on('click', () => Manager.changeScene(new GameScene()));
-    // Add components to container
-    gameOverContainer.addChild(blackLayer);
-    gameOverContainer.addChild(gameOverText);
-    gameOverContainer.addChild(replayButton);
-    gameOverContainer.alpha = 0;
-    return gameOverContainer;
-  }
-
   private async showScoreFeedback(combination: GameCombination): Promise<void> {
     const { scoreValueLabel } = this.ui;
     const score = getCombinationScore(combination);
@@ -348,11 +339,11 @@ export class GameScene extends Container implements IScene {
       align: "center",
     }));
     text.anchor.set(0.5);
-    text.x = symbol.x + 115;
-    text.y = symbol.y + 30;
-    this.addChild(text);
-    const target = new Point(scoreValueLabel.x + 20, scoreValueLabel.y + 35);
-    await animateScoreFeedback(text, target, () => {
+    text.x = symbol.x;
+    text.y = symbol.y;
+    this.boardContainer.addChild(text);
+    const target = this.boardContainer.toLocal(scoreValueLabel.getGlobalPosition());
+    await animateScoreFeedback(text, score, new Point(target.x + 25, target.y + 25), () => {
       this.ui.score += score;
     });
     text.destroy();

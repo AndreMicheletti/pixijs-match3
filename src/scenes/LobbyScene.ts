@@ -1,14 +1,19 @@
 import { Color, Container, Text, TextStyle } from "pixi.js";
 import { Manager, SCREEN_WIDTH } from "../Manager";
-import ButtonComponent from "../components/ButtonComponent";
+import ButtonComponent from "../components/generic/ButtonComponent";
 import { GameFont } from "../scripts/assetLoad";
-import { IScene } from "../scripts/types";
+import { GameRules, IScene } from "../scripts/types";
 import { GameScene } from "./GameScene";
 import { Easing, Tween } from "tweedle.js";
+import { bounceComponentForever } from "../scripts/animationHandler";
 
 export class LobbyScene extends Container implements IScene {
   private readonly title: Text;
   private readonly playButton: ButtonComponent;
+  private readonly initialRules: GameRules = {
+    limitScore: 5,
+    limitTime: 60,
+  };
 
   constructor() {
     super();
@@ -19,12 +24,7 @@ export class LobbyScene extends Container implements IScene {
 
   public async onEnter(): Promise<void> {
     await this.playIntroTween();
-    new Tween(this.title)
-      .to({ scale: { x: 1.05, y: 1.05 } }, 1000)
-      .easing(Easing.Cubic.InOut)
-      .yoyo(true)
-      .repeat(Infinity)
-      .start();
+    bounceComponentForever(this.title);
   }
 
   public async onLeave(): Promise<void> {
@@ -36,7 +36,7 @@ export class LobbyScene extends Container implements IScene {
   }
 
   private onPlayClicked(): void {
-    Manager.changeScene(new GameScene());
+    Manager.changeScene(new GameScene(this.initialRules));
   }
 
   private playIntroTween(): Promise<void> {

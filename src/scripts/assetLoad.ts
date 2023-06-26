@@ -8,11 +8,13 @@ export enum GameFont {
 
 export const GameAssets = {
   mainAtlas: 'main_atlas.json',
+  fireAtlas: 'fire_atlas.json',
   background: 'back.jpg',
   loadingBar: 'loading_bar.png',
   loadingFill: 'loading_fill.png',
   buttonBase: 'btn_base.png',
   buttonBasePressed: 'btn_base_pressed.png',
+  fog: 'fog1.png',
   fonts: [
     'fonts/DirtyHarold.woff2',
     'fonts/Poppins-Bold.ttf',
@@ -32,8 +34,12 @@ export function getSymbolTexture(symbolID: SymbolID): Texture | undefined {
   return Assets.get(GameAssets.mainAtlas).textures[SymbolAssetMap[symbolID]];
 }
 
+export function getAtlasTexture(name: string): Texture | undefined {
+  return Assets.get(GameAssets.mainAtlas).textures[name];
+}
+
 export async function loadAssets(onProgress: ProgressCallback): Promise<void> {
-  await Assets.load([GameAssets.mainAtlas, ...GameAssets.fonts], onProgress);
+  await Assets.load([GameAssets.mainAtlas, GameAssets.fireAtlas, ...GameAssets.fonts], onProgress);
 }
 
 export function loadBackground(): Promise<Texture> {

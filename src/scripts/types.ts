@@ -36,3 +36,8 @@ export type GameAction = {
   point: Point;
   direction: Direction;
 }
+
+export type GameRules = {
+  limitScore: number;
+  limitTime: number;
+}
