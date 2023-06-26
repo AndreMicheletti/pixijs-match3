@@ -10,11 +10,14 @@ export const GameAssets = {
   mainAtlas: 'main_atlas.json',
   fireAtlas: 'fire_atlas.json',
   background: 'back.jpg',
+  titleSpine: 'spine/ZombieMatch.json',
   loadingBar: 'loading_bar.png',
   loadingFill: 'loading_fill.png',
   buttonBase: 'btn_base.png',
   buttonBasePressed: 'btn_base_pressed.png',
   fog: 'fog1.png',
+  barBase: 'loading_bar.png',
+  barFill: 'loading_fill.png',
   fonts: [
     'fonts/DirtyHarold.woff2',
     'fonts/Poppins-Bold.ttf',
@@ -39,7 +42,7 @@ export function getAtlasTexture(name: string): Texture | undefined {
 }
 
 export async function loadAssets(onProgress: ProgressCallback): Promise<void> {
-  await Assets.load([GameAssets.mainAtlas, GameAssets.fireAtlas, ...GameAssets.fonts], onProgress);
+  await Assets.load([GameAssets.mainAtlas, GameAssets.fireAtlas, GameAssets.titleSpine, ...GameAssets.fonts], onProgress);
 }
 
 export function loadBackground(): Promise<Texture> {

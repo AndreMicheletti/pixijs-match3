@@ -1,0 +1,9 @@
+ZombieMatch.png
+size:1440,936
+filter:Linear,Linear
+pma:true
+match3
+bounds:2,2,1220,381
+zombie
+bounds:2,385,1436,549
+offsets:0,4,1436,553

@@ -1,3 +1,5 @@
+import 'pixi-spine';
+
 import { Manager } from './Manager';
 import { LobbyScene } from './scenes/LobbyScene';
 import { loadAssets } from './scripts/assetLoad';

@@ -1,6 +1,6 @@
 import { Color, Container, Sprite, Text, TextStyle, Texture } from "pixi.js";
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
-import { bounceComponentForever, fadeComponent } from "../scripts/animationHandler";
+import { bounceComponent, fadeComponent } from "../scripts/animationHandler";
 import { GameFont } from "../scripts/assetLoad";
 import ButtonComponent from "./generic/ButtonComponent";
 
@@ -49,10 +49,10 @@ export default class GameOver extends Container {
   private makeTitle(): Text {
     const title = new Text('GAME OVER', new TextStyle({
       fontFamily: GameFont.DirtyHarold,
-      fill: ["#bc2424", "#6d0f0f"],
+      fill: ["#ff5a5a", "#ed1f1f"],
       fontSize: 50,
-      stroke: "#450f0f",
-      strokeThickness: 5,
+      stroke: "#5a1010",
+      strokeThickness: 10,
       fontWeight: 'bold',
     }));
     title.anchor.set(0.5);
@@ -64,16 +64,16 @@ export default class GameOver extends Container {
   private makeMessage(): Text {
     const message = new Text('YOU WON', new TextStyle({
       fontFamily: GameFont.DirtyHarold,
-      fill: ["#bc2424", "#6d0f0f"],
+      fill: ["#ff5a5a", "#ed1f1f"],
       fontSize: 90,
-      stroke: "#450f0f",
-      strokeThickness: 5,
+      stroke: "#5a1010",
+      strokeThickness: 10,
       fontWeight: 'bold',
     }));
     message.anchor.set(0.5);
     message.x = SCREEN_WIDTH / 2;
     message.y = this.title.y + 70;
-    bounceComponentForever(message);
+    bounceComponent(message, 1.05, 1000, Infinity);
     return message;
   }
 

@@ -1,17 +1,17 @@
-import { Color, Container, Text, TextStyle } from "pixi.js";
-import { Manager, SCREEN_WIDTH } from "../Manager";
+import { Assets, Color, Container, Text, TextStyle } from "pixi.js";
+import { Manager, SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
 import ButtonComponent from "../components/generic/ButtonComponent";
-import { GameFont } from "../scripts/assetLoad";
+import { GameAssets, GameFont } from "../scripts/assetLoad";
 import { GameRules, IScene } from "../scripts/types";
 import { GameScene } from "./GameScene";
 import { Easing, Tween } from "tweedle.js";
-import { bounceComponentForever } from "../scripts/animationHandler";
+import { Spine } from 'pixi-spine';
 
 export class LobbyScene extends Container implements IScene {
-  private readonly title: Text;
+  private readonly title: Spine;
   private readonly playButton: ButtonComponent;
   private readonly initialRules: GameRules = {
-    limitScore: 5,
+    limitScore: 50,
     limitTime: 60,
   };
 
@@ -24,7 +24,6 @@ export class LobbyScene extends Container implements IScene {
 
   public async onEnter(): Promise<void> {
     await this.playIntroTween();
-    bounceComponentForever(this.title);
   }
 
   public async onLeave(): Promise<void> {
@@ -42,35 +41,25 @@ export class LobbyScene extends Container implements IScene {
   private playIntroTween(): Promise<void> {
     return new Promise<void>((resolve) => {
       const y = this.playButton.y;
-      this.title.scale.set(0);
       this.playButton.y = 1000;
       new Tween(this.playButton)
-        .delay(800)
+        .delay(1500)
         .to({ y }, 500)
         .easing(Easing.Cubic.Out)
-        .start();
-      new Tween(this.title)
-        .to({ scale: { x: 1, y: 1 } }, 1500)
-        .easing(Easing.Elastic.Out)
         .onComplete(() => resolve())
         .start();
     });
   }
 
-  private makeTitle(): Text {
-    const text = new Text('Zombie Match3', new TextStyle({
-      fontFamily: GameFont.DirtyHarold,
-      fill: ["#bc2424", "#6d0f0f"],
-      fontSize: 90,
-      stroke: "#450f0f",
-      strokeThickness: 5,
-      fontWeight: 'bold',
-    }));
-    text.anchor.set(0.5);
-    text.x = SCREEN_WIDTH / 2;
-    text.y = 100;
-    this.addChild(text);
-    return text;
+  private makeTitle(): Spine {
+    const animation = new Spine(Assets.get(GameAssets.titleSpine).spineData);
+    animation.scale.set(0.2, 0.2);
+    animation.x = SCREEN_WIDTH / 2;
+    animation.y = SCREEN_HEIGHT / 4;
+    this.addChild(animation);
+    animation.state.setAnimation(0, 'in', false);
+    animation.state.addAnimation(0, 'loop', true, 0);
+    return animation;
   }
 
   private makePlayButton(): ButtonComponent {
@@ -88,7 +77,7 @@ export class LobbyScene extends Container implements IScene {
       borders: ButtonComponent.borders(3, 3)
     });
     btn.x = SCREEN_WIDTH / 2 - btn.width / 2;
-    btn.y = 350;
+    btn.y = SCREEN_HEIGHT - 130;
     this.addChild(btn);
     return btn;
   }

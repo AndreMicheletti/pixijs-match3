@@ -1,23 +1,22 @@
 import { Color, Container, Text, TextStyle } from "pixi.js";
 import { SCREEN_WIDTH } from "../Manager";
+import { UIGroup, bounceComponent } from "../scripts/animationHandler";
 import { GameFont } from "../scripts/assetLoad";
+import ProgressBar from "./ProgressBar";
 
 export default class GameUI extends Container {
   private readonly timerColor = new Color('#FFFFFF');
   private readonly timerCriticalColor = new Color('#e35a5a');
 
+  private readonly targetScore: number;
+
   // #region Components
-
   public readonly scoreValueLabel: Text;
-
   private readonly scoreLabel: Text;
-
   private readonly targetLabel: Text;
-
   private readonly timerLabel: Text;
-
   private readonly timerValueLabel: Text;
-
+  private readonly progressBar: ProgressBar;
   // #endregion
 
   private onTimeEnd: () => void;
@@ -33,6 +32,9 @@ export default class GameUI extends Container {
   public set score(val: number) {
     this._score = val;
     this.scoreValueLabel.text = `${val}`;
+    UIGroup.removeAll();
+    bounceComponent(this.scoreValueLabel, 1.1, 300, 1, UIGroup);
+    this.progressBar.animateToProgress(this._score / this.targetScore);
   }
 
   public get time(): number {
@@ -58,12 +60,15 @@ export default class GameUI extends Container {
   constructor(startingTime: number, targetScore: number, onTimeEnd: () => void) {
     super();
     this._time = startingTime;
+    this.targetScore = targetScore;
     this.onTimeEnd = onTimeEnd;
     this.scoreLabel = this.makeLabel('SCORE', 22, 15);
     this.scoreValueLabel = this.makeLabel('0', 40, 40);
     this.targetLabel = this.makeLabel(`TARGET: ${targetScore}`, 12, 90);
     this.timerLabel = this.makeLabel('TIME', 22, 120);
     this.timerValueLabel = this.makeLabel('00:00', 40, 145);
+    this.progressBar = new ProgressBar();
+    this.addChild(this.progressBar);
   }
 
   private makeLabel(content: string, fontSize: number, y: number): Text {

@@ -1,10 +1,13 @@
-import { Container, DisplayObject, Point, Text } from 'pixi.js';
+import { Container, DisplayObject, IPointData, Point, Text } from 'pixi.js';
 import { Easing, EasingFunction, Group, Tween } from 'tweedle.js';
 
 import FireFXComponent from '../components/generic/FireFXComponent';
 import SymbolComponent from "../components/generic/SymbolComponent";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../Manager';
 
 export const BoardGroup = new Group();
+
+export const UIGroup = new Group();
 
 type MoveParams = {
   duration?: number;
@@ -46,23 +49,33 @@ export function animateSymbolExplode(symbol: SymbolComponent): Promise<void> {
   );
 }
 
-export function animateScoreFeedback(text: Text, score: number, { x, y }: Point, onReach?: () => void): Promise<void> {
-  const targetScale = score > 20 ? 1.5 : 1;
+export function animateScoreFeedback(
+  text: Text,
+  score: number,
+  point: Point,
+  delay: number,
+  onReach?: () => void
+): Promise<void> {
+  const { x, y } = point;
+  const middle = text.parent.toLocal(new Point((SCREEN_WIDTH / 2) - text.width / 2, (SCREEN_HEIGHT / 2) - text.height / 2));
+  const targetScale = score > 20 ? 2.5 : 2;
   return new Promise<void>((resolve) => {
-    text.scale.set(0, 0);
-    const appear = new Tween(text)
-      .to({ scale: { x: targetScale, y: targetScale } }, 500)
-      .easing(Easing.Elastic.Out);
+    text.scale.set(0.5, 0.5);
+    text.alpha = 0.5;
+    const goToCenter = new Tween(text)
+      .to({ x: middle.x, y: middle.y, scale: { x: targetScale, y: targetScale }, alpha: 1 }, 200)
+      .easing(Easing.Sinusoidal.InOut);
     const disappear = new Tween(text)
       .to({ scale: { x: 3, y: 3 }, alpha: 0 }, 200)
       .easing(Easing.Cubic.Out)
       .onComplete(() => resolve());
     const move = new Tween(text)
-      .to({ x, y }, 500)
+      .delay(250)
+      .to({ x, y, scale: { x: 1, y: 1 } }, 500)
       .easing(Easing.Quadratic.In)
       .chain(disappear)
       .onComplete(onReach);
-    appear.chain(move).start();
+    setTimeout(() => goToCenter.chain(move).start(), delay);
   });
 }
 
@@ -91,11 +104,19 @@ export function fadeComponent(object: DisplayObject, duration: number, alpha = 1
   );
 }
 
-export function bounceComponentForever(object: DisplayObject): void {
-  new Tween(object)
-    .to({ scale: { x: 1.05, y: 1.05 } }, 1000)
+export async function bounceComponent(
+  object: DisplayObject,
+  scale: number | IPointData,
+  duration: number,
+  repeat = 1,
+  group = Group.shared,
+): Promise<void> {
+  const x = typeof scale === 'number' ? scale : scale.x;
+  const y = typeof scale === 'number' ? scale : scale.y;
+  new Tween(object, group)
+    .to({ scale: { x, y } }, duration)
     .easing(Easing.Cubic.InOut)
     .yoyo(true)
-    .repeat(Infinity)
+    .repeat(repeat)
     .start();
 }

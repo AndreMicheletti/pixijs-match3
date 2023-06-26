@@ -1,17 +1,16 @@
-import { Color, Container, Point, Sprite, Text, TextStyle, Texture, Ticker } from "pixi.js";
+import { Container, Point, Text, TextStyle, Ticker } from "pixi.js";
+import { Easing, Tween } from "tweedle.js";
 import { Manager, SCREEN_HEIGHT, SCREEN_WIDTH } from "../Manager";
+import GameOver from "../components/GameOver";
 import GameUI from "../components/GameUI";
 import SymbolComponent from "../components/generic/SymbolComponent";
-import { BoardGroup, animateBoardImpact, animateScoreFeedback, animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition, bounceComponentForever, fadeComponent } from "../scripts/animationHandler";
+import { BoardGroup, UIGroup, animateBoardImpact, animateScoreFeedback, animateSymbolExplode, animateSymbolSwap, animateSymbolToPosition, fadeComponent } from "../scripts/animationHandler";
 import { GameFont } from "../scripts/assetLoad";
 import { applyActionOnBoard, createAction, getActionHash, getActionTargetPoint, getBoardValidActions } from "../scripts/board/actionHandler";
 import { BOARD_SIZE, SYMBOL_MARGIN, SYMBOL_SIZE, applyBoardGravity, copyBoard, findGravityDrops, isAdjacent, makeFirstBoard } from "../scripts/board/boardHandler";
 import { getCombinationScore, getCombinationsInBoard, removeCombinationsFromBoard } from "../scripts/board/combinationHandler";
 import { BoardMatrix, GameAction, GameCombination, GameRules, IScene, SymbolID } from "../scripts/types";
 import { rangeArray } from "../scripts/utils";
-import ButtonComponent from "../components/generic/ButtonComponent";
-import { Easing, Tween } from "tweedle.js";
-import GameOver from "../components/GameOver";
 
 export class GameScene extends Container implements IScene {
   private readonly rules: GameRules;
@@ -73,6 +72,7 @@ export class GameScene extends Container implements IScene {
   public async onEnter(): Promise<void> {
     const initialY = this.boardContainer.y;
     this.boardContainer.y = initialY + 100;
+    this.ui.alpha = 0;
     await new Promise<void>((resolve) => {
       new Tween(this.boardContainer)
         .to({ scale: { x: 1, y: 1 }, y: initialY }, 300)
@@ -83,6 +83,7 @@ export class GameScene extends Container implements IScene {
         .to({ blur: 1 }, 300)
         .easing(Easing.Quadratic.Out)
         .start();
+      fadeComponent(this.ui, 500, 1)
     });
   }
 
@@ -93,6 +94,7 @@ export class GameScene extends Container implements IScene {
   public update(): void {
     if (this.isGameOver === false) this.ui.time -= Ticker.shared.elapsedMS / 2000.0;
     BoardGroup.update(Ticker.shared.elapsedMS);
+    UIGroup.update(Ticker.shared.elapsedMS);
     this.updateSymbolInputFeedback();
   }
 
@@ -152,19 +154,20 @@ export class GameScene extends Container implements IScene {
    */
   private async processCombinations(combinations: Array<GameCombination>): Promise<void> {
     if (combinations.length <= 0) return;
-    const { scoreValueLabel } = this.ui;
     this.board = removeCombinationsFromBoard(this.board, combinations);
-    await Promise.all(combinations.map((combination) => {
-      this.showScoreFeedback(combination);
+    const feedbackPromises = [];
+    await Promise.all(combinations.map((combination, idx) => {
+      feedbackPromises.push(this.showScoreFeedback(combination, idx));
       return Promise.all(combination.map(async (point) => {
         const symbol = this.getSymbolOnPoint(point);
-        if (!symbol) return;
+        if (!symbol) return
         await animateSymbolExplode(symbol);
         this.addSymbolToRefill(symbol, new Point(point.x, -1))
       }))
     }));
     await this.processSymbolsFall();
     await this.processSymbolRefill();
+    await Promise.all(feedbackPromises);
     this.updateSymbolsToBoardData();
     await this.processCombinations(getCombinationsInBoard(this.board));
   }
@@ -325,7 +328,7 @@ export class GameScene extends Container implements IScene {
     return symbol;
   }
 
-  private async showScoreFeedback(combination: GameCombination): Promise<void> {
+  private async showScoreFeedback(combination: GameCombination, idx: number): Promise<void> {
     const { scoreValueLabel } = this.ui;
     const score = getCombinationScore(combination);
     const symbol = this.getSymbolOnPoint(combination[1]);
@@ -343,7 +346,8 @@ export class GameScene extends Container implements IScene {
     text.y = symbol.y;
     this.boardContainer.addChild(text);
     const target = this.boardContainer.toLocal(scoreValueLabel.getGlobalPosition());
-    await animateScoreFeedback(text, score, new Point(target.x + 25, target.y + 25), () => {
+    const targetPosition = new Point(target.x + 25, target.y + 25);
+    await animateScoreFeedback(text, score, targetPosition, 500 * idx, () => {
       this.ui.score += score;
     });
     text.destroy();
